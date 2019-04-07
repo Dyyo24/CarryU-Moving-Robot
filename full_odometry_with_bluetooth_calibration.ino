@@ -55,12 +55,13 @@ double distance2;
 //#define IR_pin 
 //------------------------------------------------
 
-const int motor_speed = 64; 
+const int motor_speed = 32; 
 
 // target direction, result of calibration
 int target_number = 0;
 long target_dis[128];
 float target_dir[128];
+float turn_scale = 5.5;
 
 void setup() {
   pinMode(calibration_LED,OUTPUT);
@@ -203,7 +204,7 @@ void turn_to_direction(float goal){
       digitalWrite(motorl2_dir, HIGH);
     }
     
-    turning_speed = motor_speed/2 + motor_speed*abs(error)/180/2;
+    turning_speed = turn_scale*motor_speed + motor_speed*abs(error)/180;
     //turning_speed = 32;
     analogWrite(motorr1_pwm,turning_speed);
     analogWrite(motorr2_pwm,turning_speed);
@@ -265,7 +266,7 @@ void go_to_curb(){
     turn_to_direction(target_dir[i]);
     active_wait(100);
     drive_to_destination(target_dis[i]);
-    active_wait(100);
+    active_wait(1500);
   }
 }
 
@@ -274,7 +275,7 @@ void go_home(){
     turn_to_direction(target_dir[i]);
     active_wait(100);
     drive_to_destination(-target_dis[i]);
-    active_wait(100);
+    active_wait(1500);
   }
 }
 
@@ -298,7 +299,7 @@ void calibration(){
                   current_state = 0;
                   target_number++;
               }
-              motion(HIGH,HIGH,ms_time,motor_speed);            
+              motion(HIGH,HIGH,ms_time,turn_scale*motor_speed);            
              //Serial.println(1);
              }
        
@@ -308,7 +309,7 @@ void calibration(){
                   current_state = 0;
                   target_number++;
               }
-             motion(LOW,LOW,ms_time,motor_speed);
+             motion(LOW,LOW,ms_time,turn_scale*motor_speed);
              //Serial.println(2);
              }
 
