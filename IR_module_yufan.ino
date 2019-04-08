@@ -203,25 +203,35 @@ void unifiedSensorAPIRead(void)
   }
 }
 
-double fuseIR(double IR1, double full1, double IR2, double full2)
+double * fuseIR(double IR1, double full1, double IR2, double full2)
 {
-  return {(IR1+IR2)/2, (full1 + full2)/2};
+  double r[2] = {(IR1+IR2)/2, (full1 + full2)/2};
+  return r;
   
   }
 
-double fuse_distance(double distance1, double IR_distance){}
+double fuse_distance(double distance1, double IR_distance){
+  
+  
+  
+  
+  }
 
 
-double IR_intensitydist(double fuse)
+double IR_intensitydist(double *fuse)
 {
   double IR = fuse[0];
   double full = fuse[1];
 
-  double dist = 0;
-  return dist
+  double dist = 0;   // TODO: determine a way to calculate this dist value
+  return dist;
   }
   
-void forward(){}
+void forward(){
+  
+  
+  
+  }
 
 
 void MY_DISTANCE()  // calculate the distance
@@ -275,8 +285,8 @@ void loop(void)
   // unifiedSensorAPIRead();
 
   // read data from sensor
-  double IR1 = IRread(1, One_tsl);
-  double ratio1 = IRread(2, One_tsl);  
+  double IR1 = IRread(1, One_tsl);    // read IR from sensor
+  double ratio1 = IRread(2, One_tsl);  // calculate ratio of IR/full 
   double full1 = IRread(3, One_tsl);  
   
   double IR2 = IRread(1, Two_tsl);
@@ -285,6 +295,8 @@ void loop(void)
 
   double fastspeed = 10;
   double lowspeed = 2;
+  double stop_car = 50;  // the distance within beacon that the robot can stop. Unit?
+  
   // ensuring that the range can enter a region where at least one sensor sees something 
   
   while (~detectIR(IR1, full1, ratio1) && ~detectIR(IR2, full2, ratio2))
@@ -317,7 +329,7 @@ void loop(void)
 
   while (detectIR(IR1, full1, ratio1) && detectIR(IR2, full2, ratio2))   
   {
-    double array fuse[4] = fuseIR(IR1, full1, IR2, full2);
+    double fuse[4] = fuseIR(IR1, full1, IR2, full2);
     
     IR_distance = IR_intensitydist(fuse);         // with fused IR, transform to distance calculation
     forward();
@@ -327,16 +339,23 @@ void loop(void)
       } 
     
     MY_DISTANCE();
-    fuse_dist(distance1,IR_distance);
+    double fused_tobeacon = fuse_dist(distance1,IR_distance);
+    if (fused_tobeacon < stop_car):
+    {
+      print("destination !");
+      break;
+    }
+
     
   }
 
+
+
+  
   
   delay(250);
   
   
-  
-  MY_DISTANCE();
   
   
 }
