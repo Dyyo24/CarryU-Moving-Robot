@@ -16,16 +16,42 @@
 // connect Vin to 3.3-5V DC
 // connect GROUND to common ground
 
+
+
+
+
 Adafruit_TSL2591 One_tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
 Adafruit_TSL2591 Two_tsl = Adafruit_TSL2591(2592); // second sensor
 
 
-#define S1 ??
-#define S2 ??
-#define Triq1 ??
-#define Echo1 ??
+#define S1 6
+#define S2 5
+#define Triq1 3
+#define Echo1 4
 double distance1;
 double IR_distance;
+
+//电机
+const int calibration_LED = 5;
+const int navigation_LED = 9;
+
+//左侧电机
+const int motor1_pwm = 3;
+const int motor1_dir = 2;  
+
+//右侧电机
+const int motor2_pwm = 6;
+const int motor2_dir = 7;
+const int motor1_enable = 4;
+const int motor2_enable = 8;
+const int motor_speed = 100; 
+
+
+const int max_int = 5;
+double IRarray1[max_int];   // arrays that store the sensor readings: global variables
+double ratio_array1[max_int];
+double IRarray2[max_int];
+double ratio_array2[max_int];
 /**************************************************************************/
 /*
     Displays some basic information on this sensor from the unified
@@ -130,42 +156,72 @@ void unifiedSensorAPIRead(void)
 
 //***************************************************
 //************Mechatronic Part*********************//
-void turnleft() //TODO
+//*************************************************
+void turnleft(int M_speed) //TODO
 {
-   // turnleft for IR sensation
-  
-   // add pin
-  
+  digitalWrite(navigation_LED,HIGH);
+  digitalWrite(motor1_dir,LOW);
+  digitalWrite(motor2_dir, HIGH);
+  analogWrite(motor1_pwm,M_speed);
+  analogWrite(motor2_pwm,M_speed);
+  digitalWrite(navigation_LED,LOW);
 }
 
-void forward(){   //TODO
-  
+
+
+void forward(int M_speed)
+{  
+  digitalWrite(calibration_LED,HIGH);
+  digitalWrite(motor1_dir, HIGH);
+  digitalWrite(motor2_dir, HIGH);
+  analogWrite(motor1_pwm,M_speed);
+  analogWrite(motor2_pwm,M_speed);
+  digitalWrite(calibration_LED,LOW);
   }
+
+void brake()
+{
+  digitalWrite(calibration_LED,LOW);
+  digitalWrite(motor1_dir, HIGH);
+  digitalWrite(motor2_dir, HIGH);
+  analogWrite(motor1_pwm,0);
+  analogWrite(motor2_pwm,0);
+}
+
+void rotate_adjust(double *IR1, double *ratio_array1,double *IR2, double *ratio_array2){
+    forward(10);
+    turnleft(10);
+    brake(); 
+}
+  
 //*************************************************
 //************ Signal Fusion *********************  //
 
-double * fuseIR(double IR1, double full1, double IR2, double full2)
+double fuseIR(double *IR1, double *IR2, int n)
 {
-  double r[2] = {(IR1+IR2)/2, (full1 + full2)/2};
-  return r;
-  
+  double r;
+  for (int i = 0;i<n;i++){
+    r += IR1[i] + IR2[i];
   }
-
-double fuse_distance(double distance1, double IR_distance){ //TODO  }
-  
+  return r/n;  
 }
+
+double fuse_dist(double distance1, double IR_distance)
+{ //TODO  
+  return distance1;
+}
+
+
 //*******************************************************
 //************ Distance Conversion *********************  //
-double IR_intensitydist(double *fuse)
-{
-  double IR = fuse[0];
-  double full = fuse[1];
 
+double IR_intensitydist(double fuse)
+{
+  double IR_sum = fuse;
   double dist = 0;   // TODO: determine a way to calculate this dist value
   return dist;
-  }
+}
   
-
 
 
 void MY_DISTANCE()  // calculate the distance
@@ -177,20 +233,37 @@ void MY_DISTANCE()  // calculate the distance
   distance1=distance1*0.018;
 }
 
-//************************************************************
-//************ Sensor Raw Data Processing *********************  //
+
+//*********************************************************
+//*********************Helper Functions********************
+//********************************************************
 
 double abs_average(double *arr){
   int num = sizeof(arr)/sizeof(arr[0]);
-  sum = 0;
+  int sum = 0;
   for (int i = 0;i<num;i++){
     sum += arr[i];
   }
   Serial.print("Average: ");
   Serial.print(sum/num);
   
-  return sum/num
+  return sum/num;
 }
+
+bool areEqual(double arr1[], double arr2[], int n) 
+{  
+    // Linearly compare elements 
+    for (int i=0; i<n; i++) 
+         if (arr1[i] != arr2[i]) 
+            return false; 
+    // If all elements were same. 
+    return true; 
+} 
+
+//************************************************************
+//************ Sensor Raw Data Processing *********************  //
+//************************************************************//
+
 
 int detectIR(double *IR,double *ratio) // TODO: refine rule for determining IR beacon signal
 {   
@@ -208,9 +281,10 @@ int detectIR(double *IR,double *ratio) // TODO: refine rule for determining IR b
       signsratio[i] = change_ratio[i]/abs(ratio[i+1] - ratio[i]);
     }
 
-    sign_poss1 = {1,-1,1,-1,1};
+    double sign_poss1[4] = {1,-1,1,-1};
+    double sign_poss2[4] = {-1,1,-1,1};
     
-    if ((signsIR ==  sign_poss1 || signsIR == -1*sign_poss1) && ( abs_average(changeIR) > 100) && abs_average(change_ratio) > 0.15)  // TODO: criteria design
+    if ((areEqual(signsIR,sign_poss1,max_int-1) || areEqual(signsIR,sign_poss2,max_int-1)) && ( abs_average(changeIR) > 100) && abs_average(change_ratio) > 0.15)  // TODO: criteria design
     {    
        return 1;}
     else{
@@ -219,29 +293,24 @@ int detectIR(double *IR,double *ratio) // TODO: refine rule for determining IR b
 }
 
 
-double read_data(Adafruit_TSL2591 sensor1, Adafruit_TSL2591 sensor2){   // read an array of data from each sensor, and study the pattern 
+void read_data(){   // read an array of data from each sensor, and study the pattern 
   unsigned long time_start;
   unsigned long time_end;
   int intervals = 0;
-  const int max_int = 5;
+
   int time_step = 100;  // 100 ms per recording, last for 5
   
-  double array IRarray1[max_int];   // arrays that store the sensor readings
-  double array ratio_array1[max_int];
-  double array IRarray2[max_int];
-  double array ratio_array2[max_int];
-
+  const int max_int = 5;
   while (intervals < max_int){
-    IRarray1[intervals] = IRread(1, sensorl);
-    ratio_array1[intervals] = IRread(2, sensorl);
-    IRarray2[intervals] = IRread(1, sensor2);
-    ratio_array2[intervals] = IRread(2, sensor2);    
+    IRarray1[intervals] = IRread(1, One_tsl);
+    ratio_array1[intervals] = IRread(2, One_tsl);
+    IRarray2[intervals] = IRread(1, Two_tsl);
+    ratio_array2[intervals] = IRread(2, Two_tsl);    
     
     delay(time_step); 
     intervals += 1;
   }
-  
-  return IRarray1, ratio_array1, IRarray2, ratio_array2
+
 }
 
 double IRread(int a, Adafruit_TSL2591 sensor)
@@ -283,7 +352,8 @@ void setup(void)
   pinMode(S2,INPUT);
   pinMode(Triq1,OUTPUT);
   pinMode(Echo1,INPUT);
-    
+
+ 
   Serial.begin(9600);
   
   Serial.println("Starting TSL2591 Navigation module!");
@@ -313,7 +383,7 @@ void loop(void)
 
 
   // read data from sensor
-  IRarray1, ratio_array1, IRarray2, ratio_array2 = read_data(One_tsl,Two_tsl);
+  read_data();    ///
   
   double fastspeed = 10;
   double lowspeed = 2;
@@ -323,50 +393,39 @@ void loop(void)
   
   while (~detectIR(IRarray1, ratio_array1) && ~detectIR(IRarray2, ratio_array2))
   {
-    turnleft(fastspeed); // turn fast 
-    IRarray1, ratio_array1, IRarray2, ratio_array2 = read_data(One_tsl,Two_tsl); 
+    turnleft(20); // turn fast 
+    read_data(); 
     // reread sensor data after turning
 
     delay(0);  // TODO: set delay time
     }
 
   // assume S1 is the left sensor, turn until S1 can see IR, but not S2
-  while (detectIR(IR_array1,ratio_array1) && ~detectIR(IR_array2,ratio_array2))
+  while (detectIR(IRarray1,ratio_array1) && ~detectIR(IRarray2,ratio_array2))
   {
-    turnleft(lowspeed); // turn slow
-    IRarray1, ratio_array1, IRarray2, ratio_array2 = read_data(One_tsl,Two_tsl);     
+    turnleft(5); // turn slow
+    read_data();     
   }
 
   while (detectIR(IRarray1,ratio_array1) && detectIR(IRarray2,ratio_array2))   
   {
-    double fuse[4] = fuseIR(IR1, full1, IR2, full2);
+    double fuse = fuseIR(IRarray1, IRarray2, max_int);
     
     IR_distance = IR_intensitydist(fuse);         // with fused IR, transform to distance calculation
-    forward();
+    forward(20);
     while (detectIR(IRarray1,ratio_array1) && detectIR(IRarray2,ratio_array2))
     {
-      rotate_adjust(IR1, full1,IR2, full2);
-      IRarray1, ratio_array1, IRarray2, ratio_array2 = read_data(One_tsl,Two_tsl); 
+      rotate_adjust(IRarray1, ratio_array1, IRarray2, ratio_array2);
+      read_data(); 
       } 
     
     MY_DISTANCE();
     double fused_tobeacon = fuse_dist(distance1,IR_distance);
-    if (fused_tobeacon < stop_car):
+    if (fused_tobeacon < stop_car)
     {
-      print("destination !");
+      Serial.print("destination !");
       break;
-    }
-
-    
+    }    
   }
-
-
-
-  
-  
   delay(250);
-  
-  
-  
-  
 }
