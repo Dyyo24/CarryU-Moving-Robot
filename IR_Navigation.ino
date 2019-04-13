@@ -285,8 +285,7 @@ void MY_DISTANCE()  // calculate the distance
 
 int detectIR(double ratio) // TODO: refine rule for determining IR beacon signal
 {
-
-  if ( ratio > 0.3)  // TODO: criteria design
+  if (ratio > 0.4)  // TODO: criteria design
   {
     return 1;
   }
@@ -332,10 +331,7 @@ void setup(void)
 
   // Now we're ready to get readings ... move on to loop()!
 }
-// Function for servo turning
-//int servo_angle(int servoangle){
-//
-//}
+
 double servoangle = 90; //set initial angle to 90
 void loop(void)
 {
@@ -354,21 +350,22 @@ void loop(void)
   bool firstsearch = true;
   while (!detectIR(IRFULLratio1) && firstsearch)
   {
-    firstsearch = false;
     turnleft(20); //input an angle
 
     advancedRead();
     // reread sensor data after turning
-
+    if (detectIR(IRFULLratio1)) {
+      firstsearch = false;
+    }
     delay(20);  // TODO: set delay time
   }
 
   while (!detectIR(IRFULLratio1) && !firstsearch) {
-    if (servoangle == 30) {
+    if (servoangle == 0) {
       servoangle = 91;
       servo_angle(servoangle);
     }
-    else if(servoangle == 160){
+    else if (servoangle == 180) {
       servoangle = 90;
       servo_angle(servoangle);
     }
