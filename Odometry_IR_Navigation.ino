@@ -395,7 +395,7 @@ void go_home() {
     drive_to_destination(target_dis[i], new_dir);
     active_wait(1500);
     advancedRead();
-    if (detectIR(IRFULLratio1)) {
+    if (detectIR(IRFULLratio1, ir1)) {
       break;
     }
   }
@@ -616,18 +616,17 @@ void MY_DISTANCE()  // calculate the distance
   distance1 = distance1 * 0.018;
 }
 
-int detectIR(double ratio) // TODO: refine rule for determining IR beacon signal
+int detectIR(double ratio, uint16_t IR) // TODO: refine rule for determining IR beacon signal
 {
-  if (ratio > 0.4)  // TODO: criteria design
+  if (ratio > 0.4 && IR > 40)  // TODO: criteria design
   {
     return 1;
   }
-  else {
-    return 0;
-  }
+  return 0;
 }
 
 void IR_navigation() {
+  
   advancedRead();
 
   double fastspeed = 10;
@@ -647,7 +646,7 @@ void IR_navigation() {
   //  }
 
   /* If not detect IR rotate servo to left then right until detected */
-  while (!detectIR(IRFULLratio1)) {
+  while (!detectIR(IRFULLratio1, ir1)) {
     if (servoangle == 0) {
       servoangle = 91;
       servo_angle(servoangle);
@@ -666,7 +665,7 @@ void IR_navigation() {
     Serial.println("servo turning");
     advancedRead();
     angleturnto = 0.0;
-    if (detectIR(IRFULLratio1)) {
+    if (detectIR(IRFULLratio1, ir1)) {
       angleturnto = servoangle;
       servoangle = 90;
       servo_angle(servoangle);
@@ -676,7 +675,7 @@ void IR_navigation() {
   }
 
   /* If detect IR move forward until lost signal */
-  while (detectIR(IRFULLratio1))
+  while (detectIR(IRFULLratio1, ir1))
   {
     simplyMoveFoward();
     advancedRead();
@@ -701,6 +700,7 @@ void simplyMoveFoward() {
 float computeDistance(double IR, double IRFULLratio) {
   double distanceIR = 4.8671*exp(-0.0450*IR)+1.3331*exp(-0.0016*IR);
   double distanceRatio = 23.3120*exp(-2.2974*IRFULLratio)+(2.4272*0.0001)*exp(4.4738*IRFULLratio);
-  return 0.0;
+  distanceIR = distanceIR * 0.8 + distanceRatio * 0.2;
+  return distanceIR;
 }
 
