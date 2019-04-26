@@ -1,8 +1,8 @@
 
 #define SDA_PORT PORTC
-#define SDA_PIN 0 // = A0
+#define SDA_PIN 1 // = A1
 #define SCL_PORT PORTC
-#define SCL_PIN 1 // = A1
+#define SCL_PIN 2 // = A2
 
 #include <SoftI2CMaster.h>
 #include <Adafruit_Sensor.h>
@@ -16,10 +16,10 @@ const int compass_dataout_register = 0x1A;  //Euler Angle
 Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591);
 
 void setup(void) {
-  pinMode(A4, INPUT);
-  pinMode(A5, INPUT);
-  digitalWrite(A4, LOW); //disable internal pullup resistor
-  digitalWrite(A5, LOW); //disable internal pullup resistor
+  pinMode(20, INPUT);
+  pinMode(21, INPUT);
+  digitalWrite(20, LOW); //disable internal pullup resistor
+  digitalWrite(21, LOW); //disable internal pullup resistor
   Serial.begin(57600);
   i2c_initiation();
   i2c_set_mode();
