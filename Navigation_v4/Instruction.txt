@@ -1,0 +1,3 @@
+If you use multiple .ino files you need to be aware that the compiler first loads the principal file (the one with the same name as the folder) and then loads the others in alphabetical order.
+
+Variables defined in an earlier file will be visible to code in a file that is loaded later, but not vice-versa.
