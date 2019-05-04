@@ -1,33 +1,35 @@
-void wait_for_buttom(){
+void wait_for_buttom() {
   // wait for buttom to be pushed
   int pushed = HIGH;
-  while(digitalRead(button_pin) == LOW || pushed){
-    if (digitalRead(button_pin) == LOW){pushed = LOW;}
+  while (digitalRead(button_pin) == LOW || pushed) {
+    if (digitalRead(button_pin) == LOW) {
+      pushed = LOW;
+    }
   }
   delay(1000);
 }
 
-void active_wait(int time_to_wait_in_ms){
+void active_wait(int time_to_wait_in_ms) {
   // wait for a certain time without using delay()
   lastMilli = millis();
-  while(millis()-lastMilli < time_to_wait_in_ms){ }
+  while (millis() - lastMilli < time_to_wait_in_ms) { }
 }
 
-void blink_LED(int ID, int frequency_in_ms){
+void blink_LED(int ID, int frequency_in_ms) {
   // blink a LED under certain frequency, runs forever
-  // ID = 1: red_LED 
+  // ID = 1: red_LED
   // ID = 2: green_LED
   // ID = 3: yellow_LED
-  // ID = 4: white_LED 
+  // ID = 4: white_LED
   // delay time = frequency_in_ms
-  
-  digitalWrite(yellow_LED,LOW);
-  digitalWrite(white_LED,LOW);
-  digitalWrite(green_LED,LOW);
-  digitalWrite(red_LED,LOW);
+
+  digitalWrite(yellow_LED, LOW);
+  digitalWrite(white_LED, LOW);
+  digitalWrite(green_LED, LOW);
+  digitalWrite(red_LED, LOW);
 
   int current_LED = 0;
-  switch(ID){
+  switch (ID) {
     case 1:
       current_LED = red_LED;
       break;
@@ -44,10 +46,10 @@ void blink_LED(int ID, int frequency_in_ms){
       return;
       break;
   }
-  while(1){
-    digitalWrite(current_LED,HIGH);
+  while (1) {
+    digitalWrite(current_LED, HIGH);
     active_wait(frequency_in_ms);
-    digitalWrite(current_LED,LOW);
+    digitalWrite(current_LED, LOW);
     active_wait(frequency_in_ms);
   }
 }
@@ -95,6 +97,17 @@ void aviod_obstacle() {
       digitalWrite(white_LED, LOW);
       digitalWrite(green_LED, LOW);
       digitalWrite(red_LED, LOW);
+      L_distance = GetDistance(L_TrigPin, L_EchoPin);
+      R_distance = GetDistance(R_TrigPin, R_EchoPin);
+      L_Distance_Sum -= L_Distance[index];
+      R_Distance_Sum -= R_Distance[index];
+      L_Distance[index] = L_distance;
+      R_Distance[index] = R_distance;
+      L_Distance_Sum += L_distance;
+      R_Distance_Sum += R_distance;
+      index++;
+      LPF_leftDist = L_Distance_Sum * 0.2;
+      LPF_rightDist = R_Distance_Sum * 0.2;
       if (LPF_leftDist > threshold_to_stop && LPF_rightDist > threshold_to_stop) {  //detect whether the obstacle is still there
         number_exceed_limit++;
       }
@@ -111,15 +124,15 @@ void aviod_obstacle() {
 void wait_for_placement()
 // for ultrasonic sensor (Weijia)
 {
-  while(1)
+  while (1)
   {
-  ultrasonic_distance=GetDistance(TrigPin,EchoPin);
-  delay(200);
-  if(ultrasonic_distance<20) break;
+    ultrasonic_distance = GetDistance(TrigPin, EchoPin);
+    delay(200);
+    if (ultrasonic_distance < 20) break;
   }
 }
 
-float GetDistance (int SR04_TrigPin,int SR04_EchoPin){
+float GetDistance (int SR04_TrigPin, int SR04_EchoPin) {
   digitalWrite(SR04_TrigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(SR04_TrigPin, HIGH);
