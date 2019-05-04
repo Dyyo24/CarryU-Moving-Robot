@@ -51,47 +51,63 @@ void blink_LED(int ID, int frequency_in_ms){
     active_wait(frequency_in_ms);
   }
 }
-void aviod_obstacle(){
-//  while(1){
-//  L_distance=GetDistance(L_TrigPin,L_EchoPin);
-//  R_distance=GetDistance(R_TrigPin,R_EchoPin);
-//  if(L_distance>30){
-//    delay(500);
-//    L_distance=GetDistance(L_TrigPin,L_EchoPin);
-//    if(L_distance>30) break;
-//    }
-//    if(R_distance>30){
-//      delay(500);
-//      R_distance=GetDistance(R_TrigPin,R_EchoPin);
-//      if(R_distance>30) break;
-//    }
-//  }
-  while(1){
-  L_distance=GetDistance(L_TrigPin,L_EchoPin);
-  R_distance=GetDistance(R_TrigPin,R_EchoPin);
-  if(L_distance>30 && R_distance>30){
-    Serial.print(L_distance);
-    Serial.print(" , ");
-    Serial.println(R_distance);
-    L_distance=GetDistance(L_TrigPin,L_EchoPin);
-    R_distance=GetDistance(R_TrigPin,R_EchoPin);
-    if(L_distance>30 && R_distance>30) {
-      Serial.print(L_distance);
-    Serial.print(" , ");
-    Serial.println(R_distance);
-      break;
+
+void aviod_obstacle() {
+  const float threshold_to_stop = 40.0;
+  static bool obstacle_detected = false;
+  static int number_exceed_limit = 0;
+  static float L_Distance_Sum = 0.0;
+  static float R_Distance_Sum = 0.0;
+  static float L_Distance[5];
+  static float R_Distance[5];
+  static int index = 0;
+  static bool array_full = false;
+  // Ultrasonic Signal LPF
+  L_distance = GetDistance(L_TrigPin, L_EchoPin);
+  R_distance = GetDistance(R_TrigPin, R_EchoPin);
+  if (array_full) {
+    L_Distance_Sum -= L_Distance[index];
+    R_Distance_Sum -= R_Distance[index];
+  }
+  L_Distance[index] = L_distance;
+  R_Distance[index] = R_distance;
+  L_Distance_Sum += L_distance;
+  R_Distance_Sum += R_distance;
+  index++;
+  if (index == 5) {
+    array_full = true;
+    index = 0;
+  }
+  // Only executes when LPF signal is ready
+  if (array_full) {
+    float LPF_leftDist = L_Distance_Sum * 0.2;
+    float LPF_rightDist = R_Distance_Sum * 0.2;
+    if (LPF_leftDist < threshold_to_stop || LPF_rightDist < threshold_to_stop) {  // Accumulates consecutive detection signals
+      number_exceed_limit++;
     }
+    if (number_exceed_limit > 4) {  // detected if accumulation exceeds some number
+      number_exceed_limit = 0;
+      obstacle_detected = true;
     }
-    Serial.println("===================");
-    cut_power();
-  digitalWrite(yellow_LED,HIGH);
-  digitalWrite(white_LED,LOW);
-  digitalWrite(green_LED,LOW);
-  digitalWrite(red_LED,LOW);
+    while (obstacle_detected) {   // stop motor if detected
+      cut_power();
+      digitalWrite(yellow_LED, HIGH);
+      digitalWrite(white_LED, LOW);
+      digitalWrite(green_LED, LOW);
+      digitalWrite(red_LED, LOW);
+      if (LPF_leftDist > threshold_to_stop && LPF_rightDist > threshold_to_stop) {  //detect whether the obstacle is still there
+        number_exceed_limit++;
+      }
+      if (number_exceed_limit > 5) {
+        number_exceed_limit = 0;
+        obstacle_detected = false;
+      }
+    }
   }
   power_motor();
-  digitalWrite(yellow_LED,LOW);
+  digitalWrite(yellow_LED, LOW);
 }
+
 void wait_for_placement()
 // for ultrasonic sensor (Weijia)
 {
