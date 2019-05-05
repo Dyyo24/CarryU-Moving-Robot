@@ -228,7 +228,7 @@ void drive_to_destination(long goal,float dir){
 
   goal = abs(goal);
   while(distance_traveled < goal){
-  aviod_obstacle();
+  avoid_obstacle();
 // ----------- code for direction correction, not tested ------------
 //    error = dir - get_direction_filter10();
 //    if (error > 180) error = error - 360;
@@ -278,7 +278,7 @@ void drive_to_destination(long goal,float dir){
     last_distance = distance_traveled;
     active_wait(10);
   }
-  
+  Serial.println(distance_traveled);
   stop_motor();
   cut_power();
   return;

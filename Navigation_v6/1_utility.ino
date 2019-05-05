@@ -54,8 +54,8 @@ void blink_LED(int ID, int frequency_in_ms) {
   }
 }
 
-void aviod_obstacle() {
-  const float threshold_to_stop = 40.0;
+void avoid_obstacle() {
+  const float threshold_to_stop = 30.0;
   static bool obstacle_detected = false;
   static int number_exceed_limit = 0;
   static float L_Distance_Sum = 0.0;
@@ -87,10 +87,14 @@ void aviod_obstacle() {
     if (LPF_leftDist < threshold_to_stop || LPF_rightDist < threshold_to_stop) {  // Accumulates consecutive detection signals
       number_exceed_limit++;
     }
-    if (number_exceed_limit > 4) {  // detected if accumulation exceeds some number
+    else {
+      number_exceed_limit = 0;
+    }
+    if (number_exceed_limit > 3) {  // detected if accumulation exceeds some number
       number_exceed_limit = 0;
       obstacle_detected = true;
     }
+
     while (obstacle_detected) {   // stop motor if detected
       cut_power();
       digitalWrite(yellow_LED, HIGH);
@@ -106,12 +110,20 @@ void aviod_obstacle() {
       L_Distance_Sum += L_distance;
       R_Distance_Sum += R_distance;
       index++;
+      if (index == 5) {
+        array_full = true;
+        index = 0;
+      }
       LPF_leftDist = L_Distance_Sum * 0.2;
       LPF_rightDist = R_Distance_Sum * 0.2;
       if (LPF_leftDist > threshold_to_stop && LPF_rightDist > threshold_to_stop) {  //detect whether the obstacle is still there
         number_exceed_limit++;
       }
-      if (number_exceed_limit > 5) {
+      else {
+        number_exceed_limit = 0;
+      }
+      if (number_exceed_limit > 100) 
+      {
         number_exceed_limit = 0;
         obstacle_detected = false;
       }
@@ -119,10 +131,11 @@ void aviod_obstacle() {
   }
   power_motor();
   digitalWrite(yellow_LED, LOW);
+  return;
 }
 
 void wait_for_placement()
-// for ultrasonic sensor (Weijia)
+// for ultrasonic sensor
 {
   while (1)
   {
